@@ -1,56 +1,152 @@
-# MunchIt Frontend
+# MyRestaurantApi Hooks — Test Description
 
-Welcome to the frontend repository of MunchIt, the cutting-edge food ordering platform that's changing the way you enjoy your favorite meals! 🍔🥗🌮
+---
 
-## About MunchIt
+## Overview
 
-MunchIt is a full-stack food ordering web app and mobile app built with the powerful MERN stack (MongoDB, Express.js, React.js, Node.js), enhanced with TypeScript for security and code clarity, and styled with Tailwind CSS for beautiful and responsive design. The frontend part of MunchIt is responsible for delivering a delightful user experience for both foodies and restaurant owners alike.
+This document describes the unit tests created for the custom React Query hooks in `src/api/MyRestaurantApi.tsx`.
 
-## Features
+Hooks covered:
+- `useGetMyRestaurant`
+- `useCreateMyRestaurant`
+- `useUpdateMyRestaurant`
+- `useGetMyOrdersForRestaurant`
+- `useUpdateMyRestaurantOrder`
 
-- Effortless Food Ordering: Search, sort, and filter through a vast selection of restaurants to find your perfect meal. Manage your cart with ease, add or remove items on the go, and track your order history for quick reordering.
-  
-- Empowering Restaurants: Restaurant owners can create and manage their profiles, showcase mouthwatering descriptions and tempting photos, manage menus, and track order statuses effortlessly.
+Test file:
+- `src/api/__tests__/MyRestaurantApi.test.tsx`
 
-- Secure and Scalable Infrastructure: Secure user authentication handled by Auth0 ensures data safety, while Stripe integration provides smooth in-app payment experience. Deployment on Render.com guarantees scalability to handle any crowd size.
+Test framework:
+- Vitest + jsdom + Testing Library
 
-## Getting Started
+---
 
-1. **Clone the Repository**: 
-git clone https://github.com/yourusername/munchit-frontend.git
+## Behaviors Tested
 
+1. Fetch "my restaurant" successfully and include Authorization header.
+2. Handle error when fetching "my restaurant" (result is undefined, no crash).
+3. Create restaurant via POST with FormData and show success toast.
+4. Show error toast when creating restaurant fails.
+5. Update restaurant via PUT with FormData and show success toast.
+6. Show error toast when updating restaurant fails.
+7. Fetch orders for the restaurant with correct headers.
+8. Handle error when fetching orders (result is undefined, no crash).
+9. Update order status via PUT with JSON body and show success toast.
+10. Show error toast when updating order status fails.
 
-2. **Install Dependencies**: 
-cd munchit-frontend
-npm install
+---
 
+## Mocks Used (and Why)
 
-3. **Set Up Environment Variables**: 
-Create a `.env` file in the root directory and add the necessary environment variables. Example
-- VITE_API_BASE_URL=your-backend-base-url  
-- VITE_AUTH0_AUDIENCE=audience-name in auth0  
-- VITE_AUTH0_DOMAIN=your-auth0-domain.auth0.com  
-- VITE_AUTH0_CLIENT_ID=your-auth0-client-id  
-- VITE_AUTH0_CALLBACK_URL=your-callback-url-onauth0
+- Auth0 (`@auth0/auth0-react`):
+  - Mocked `useAuth0().getAccessTokenSilently` to return a static token (`"test-access-token"`).
+  - Reason: Avoid hitting Auth0 and ensure deterministic Authorization header checks.
 
+- Fetch (global `fetch`):
+  - Mocked to control status codes, JSON payloads, and request inspection.
+  - Reason: Avoid real network calls; assert URLs, methods, headers, and bodies.
 
-4. **Start the Development Server**: 
-npm run dev
+- Toast (`sonner`):
+  - Mocked `toast.success` and `toast.error` to verify user messaging without UI.
+  - Reason: Avoid UI side effects while asserting notifications.
 
+- React Query environment:
+  - Each test renders hooks inside a fresh `QueryClientProvider` to prevent cache bleed and retries.
 
-## Technologies Used
+---
 
-- React.js
-- TypeScript
-- Tailwind CSS
+## Project Configuration for Tests
 
-## Contributing
+Files modified/added to enable testing:
 
-We welcome contributions from everyone! To contribute to MunchIt, please follow these steps:
+- `package.json` (scripts):
+  - `"test": "vitest"`
+  - `"test:run": "vitest run"`
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/YourFeature`).
-3. Commit your changes (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/YourFeature`).
-5. Open a pull request.
+- `vite.config.ts` (Vitest + env):
+  - `test.environment = "jsdom"`
+  - `test.setupFiles = "./src/test/setup.ts"`
+  - Inline env var for API base URL so tests can resolve `import.meta.env.VITE_API_BASE_URL`:
+    - `define: { 'import.meta.env.VITE_API_BASE_URL': '"http://api.test"' }`
 
+- `src/test/setup.ts`:
+  - Imports `@testing-library/jest-dom` to extend matchers.
+
+---
+
+## How to Run Tests
+
+- Interactive/watch mode:
+```bash
+npm run test
+```
+
+- Single run (CI-friendly):
+```bash
+npm run test:run
+```
+
+If you see failures about `import.meta.env.VITE_API_BASE_URL` being `undefined`, ensure the inline `define` block exists in `vite.config.ts`.
+
+---
+
+## How to Push This Documentation
+
+Stage and commit this file and push your branch:
+
+```bash
+# From the project root
+git add docs/tests/MyRestaurantApi-tests.md
+git commit -m "docs(tests): add MyRestaurantApi hooks test description"
+
+# Push current branch (sets upstream if not set)
+git push -u origin HEAD
+```
+
+To include all changes you made earlier (tests + config) in a single push:
+```bash
+git add -A
+git commit -m "test: add Vitest setup and MyRestaurantApi hooks tests + docs"
+git push -u origin HEAD
+```
+
+---
+
+## Maintenance Tips
+
+- If API base URL changes for tests:
+  - Update the `define` section in `vite.config.ts` with the new value for `VITE_API_BASE_URL`.
+
+- If toast messages change:
+  - Update the expected strings in the tests (e.g., `toast.success('Restaurant created!')`).
+
+- Avoid resetting core mocks unintentionally:
+  - Do not call `vi.restoreAllMocks()` between tests if it resets the Auth0 mock implementation.
+  - `vi.clearAllMocks()` is used to clear call counts while keeping implementations.
+
+- React Query retries:
+  - Tests disable retries so failures surface immediately and deterministically.
+
+---
+
+## Troubleshooting
+
+- Push rejected due to remote history:
+  - Pull/rebase and re-push:
+    ```bash
+    git pull --rebase origin main  # or your default branch
+    git push
+    ```
+- Authentication:
+  - For HTTPS remotes, use a GitHub Personal Access Token as your password when prompted.
+  - For SSH, ensure your keys are configured with GitHub.
+
+---
+
+## References
+
+- Test file: `src/api/__tests__/MyRestaurantApi.test.tsx`
+- Source hooks: `src/api/MyRestaurantApi.tsx`
+- Setup file: `src/test/setup.ts`
+- Vite config: `vite.config.ts`
+- Package scripts: `package.json`
