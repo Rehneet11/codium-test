@@ -9,4 +9,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Inline env var for both Vite and Vitest
+  define: {
+    'import.meta.env.VITE_API_BASE_URL': '"http://api.test"',
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: "./src/test/setup.ts",
+    globals: true,
+  }
 })
